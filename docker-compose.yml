@@ -1,0 +1,154 @@
+version: '3.8'
+
+services:
+  discovery-service:
+    build:
+      context: .
+      dockerfile: discovery-service/Dockerfile
+    container_name: discovery-service
+    ports:
+      - "8761:8761"
+    environment:
+      SERVER_PORT: 8761
+      SPRING_APPLICATION_NAME: discovery-service
+      EUREKA_CLIENT_REGISTER_WITH_EUREKA: false
+      EUREKA_CLIENT_FETCH_REGISTRY: false
+
+  gateway-service:
+    build:
+      context: .
+      dockerfile: gateway-service/Dockerfile
+    container_name: gateway-service
+    ports:
+      - "8080:8080"
+    depends_on:
+      - discovery-service
+    environment:
+      SPRING_APPLICATION_NAME: gateway-service
+      SERVER_PORT: 8080
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+
+  catalog_service_db:
+    image: postgres:16.6
+    container_name: catalog-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: catalogdb
+      POSTGRES_USER: ${CATALOG_DB_USER}
+      POSTGRES_PASSWORD: ${CATALOG_DB_PASSWORD}
+      LANG: en_US.utf8
+      LC_ALL: en_US.utf8
+    ports:
+      - "127.0.0.1:5431:5432"
+    volumes:
+      - catalog_data:/var/lib/postgresql/data
+
+  catalog-service:
+    build:
+      context: .
+      dockerfile: catalog-service/Dockerfile
+    container_name: catalog-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      - catalog_service_db
+      - discovery-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://catalog_service_db:5432/catalogdb
+      SPRING_DATASOURCE_USERNAME: ${CATALOG_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${CATALOG_DB_PASSWORD}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+
+  user_service_db:
+    image: postgres:16.6
+    container_name: user-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: userdb
+      POSTGRES_USER: ${USER_DB_USER}
+      POSTGRES_PASSWORD: ${USER_DB_PASSWORD}
+      LANG: en_US.utf8
+      LC_ALL: en_US.utf8
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - user_data:/var/lib/postgresql/data
+
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    container_name: user-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      - user_service_db
+      - discovery-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://user_service_db:5432/userdb
+      SPRING_DATASOURCE_USERNAME: ${USER_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${USER_DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    container_name: auth-service
+    ports:
+      - "8083:8081"
+    depends_on:
+      - user-service
+      - discovery-service
+    environment:
+      USER_SERVICE_BASE_URL: http://user-service:8082
+      SERVER_PORT: 8081
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_TOKEN_VALIDITY: ${JWT_ACCESS_TOKEN_VALIDITY}
+      JWT_REFRESH_TOKEN_VALIDITY: ${JWT_REFRESH_TOKEN_VALIDITY}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+
+  order_service_db:
+    image: postgres:16.6
+    container_name: order-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: orderdb
+      POSTGRES_USER: ${ORDER_DB_USER}
+      POSTGRES_PASSWORD: ${ORDER_DB_PASSWORD}
+      LANG: en_US.utf8
+      LC_ALL: en_US.utf8
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - order_data:/var/lib/postgresql/data
+
+  order-service:
+    build:
+      context: .
+      dockerfile: order-service/Dockerfile
+    container_name: order-service
+    ports:
+      - "8084:8082"
+    depends_on:
+      - order_service_db
+      - auth-service
+      - catalog-service
+      - discovery-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://order_service_db:5432/orderdb
+      SPRING_DATASOURCE_USERNAME: ${ORDER_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${ORDER_DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
+      USER_SERVICE_BASE_URL: http://user-service:8082
+      CATALOG_SERVICE_BASE_URL: http://catalog-service:8081
+      AUTH_SERVICE_BASE_URL: http://auth-service:8081
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+
+volumes:
+  catalog_data:
+  user_data:
+  order_data:

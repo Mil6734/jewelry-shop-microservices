@@ -1,0 +1,13 @@
+.git
+.gitignore
+.idea
+.vscode
+*.iml
+**/target
+**/build
+.mvn
+.gradle
+*.log
+logs
+.DS_Store
+README.md

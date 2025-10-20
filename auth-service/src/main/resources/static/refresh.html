@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Refresh Token</title>
+</head>
+<body>
+<h1>Auth Service — Refresh</h1>
+<button id="btn">Refresh Access Token</button>
+<h2>Response:</h2>
+<pre id="out"></pre>
+
+<script>
+  document.getElementById('btn').addEventListener('click', async () => {
+    const token = sessionStorage.getItem('refreshToken');
+    if (!token) return alert('Сначала залогиньтесь на /index.html');
+    const res = await fetch('/auth/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken: token })
+    });
+    const body = await (res.ok ? res.json() : res.text());
+    document.getElementById('out').textContent =
+            res.ok
+                    ? JSON.stringify(body, null,2)
+                    : `Error ${res.status}:\n${body}`;
+    if (res.ok) sessionStorage.setItem('refreshToken', body.refreshToken);
+  });
+</script>
+</body>
+</html>
+c

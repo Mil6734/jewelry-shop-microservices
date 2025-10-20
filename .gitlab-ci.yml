@@ -1,0 +1,25 @@
+stages:
+  - build
+  - test
+
+variables:
+  MAVEN_CLI_OPTS: "-B -Dmaven.repo.local=.m2/repository"
+
+cache:
+  paths:
+    - .m2/repository
+
+build:
+  stage: build
+  script:
+    - echo "Building all modules..."
+    - mvn clean install $MAVEN_CLI_OPTS
+  artifacts:
+    paths:
+      - "**/target/*.jar"
+
+test:
+  stage: test
+  script:
+    - echo "Running tests..."
+    - mvn test $MAVEN_CLI_OPTS

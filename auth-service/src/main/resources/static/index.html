@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+</head>
+<body>
+<h1>Auth Service — Login</h1>
+<form id="loginForm">
+    <label>
+        Username:
+        <input type="text" name="username" value="admin"/>
+    </label><br/><br/>
+    <label>
+        Password:
+        <input type="password" name="password" value="admin123"/>
+    </label><br/><br/>
+    <button type="submit">Login</button>
+</form>
+
+<h2>Response:</h2>
+<pre id="out"></pre>
+
+<script>
+    document.getElementById('loginForm').addEventListener('submit', async e => {
+        e.preventDefault();
+        const f = e.target;
+        const payload = {
+            username: f.username.value,
+            password: f.password.value
+        };
+        const res = await fetch('/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const body = await (res.ok ? res.json() : res.text());
+        document.getElementById('out').textContent =
+            res.ok
+                ? JSON.stringify(body, null,2)
+                : `Error ${res.status}:\n${body}`;
+        if (res.ok) sessionStorage.setItem('refreshToken', body.refreshToken);
+    });
+</script>
+</body>
+</html>

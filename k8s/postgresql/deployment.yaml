@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-service-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: catalog-service-db
+  template:
+    metadata:
+      labels:
+        app: catalog-service-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16.6
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: catalogdb
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: catalog-db-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: catalog-db-secret
+                  key: password

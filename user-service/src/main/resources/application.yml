@@ -1,0 +1,51 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: user-service
+
+  datasource:
+    url: jdbc:postgresql://user_service_db:5432/userdb
+    username: ${USER_DB_USER}
+    password: ${USER_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  security:
+    user:
+      name: admin
+      password: ${JWT_SECRET}
+      roles: ADMIN
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://discovery-service:8761/eureka
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,mappings,loggers
+  endpoint:
+    health:
+      roles: ADMIN
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  level:
+    org.springframework.boot.actuate.autoconfigure.metrics.export.prometheus: DEBUG
+    io.micrometer.prometheus: DEBUG
